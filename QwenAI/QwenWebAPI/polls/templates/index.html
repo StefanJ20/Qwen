@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Qwen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    :root {
+      --bg: #020617;
+      --panel: #111827;
+      --border: #233444;
+      --text: #caccd1;
+      --muted: #9ca3af;
+      --accent: #a33865;
+      --guide: rgb(117, 16, 92);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      height: 100vh;
+      overflow-y: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .guide {
+      position: fixed;
+      top: 0;
+      height: 96vh;
+      width: 2px;
+      background: var(--guide);
+      z-index: 0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.02);
+    }
+
+    .guide { 
+
+        right: 8.15in; 
+        margin-top: 15px;
+        margin-bottom: 50px;
+    
+    }
+
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 11.7in;
+      right: 0.6in;
+      height: 56px;
+      background: var(--panel);
+      border: 3px solid var(--border);
+      border-radius: 14px;
+      margin-top: 8px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 3;
+
+      transform: translateY(0);
+      transition: transform 200ms ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.02);
+    }
+
+    .topbar.hidden {
+      transform: translateY(calc(-100% - 16px));
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand {
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .topbar-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: nowrap;
+      overflow: hidden;
+    }
+
+    .topbar-nav button,
+    .topbar-nav select {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .topbar-nav button:hover,
+    .topbar-nav select:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topbar-toggle {
+      position: fixed;
+      top: 15px;
+      right: 0.3in;
+      transform: translateX(50%);
+      z-index: 4;
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 999px;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.02);
+      transition: border-color 150ms ease;
+      user-select: none;
+    }
+
+    .topbar-toggle:hover {
+      border-color: var(--accent);
+    }
+
+    .topbar-toggle span {
+      display: inline-block;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1;
+      transition: transform 200ms ease;
+    }
+
+    .topbar-toggle.hidden span {
+      transform: rotate(180deg);
+    }
+
+    main {
+      height: 100%;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 1.1rem;
+      padding-top: 70px; 
+    }
+
+    .editor-wrapper {
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      width: 25%;
+      height: 22vh;
+      bottom: 24px;
+      left: 11.9in;
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.02);
+      z-index: 2;
+    }
+
+    .editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex: 0 0 auto;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .editor-header button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .editor-header button:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    textarea {
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      resize: none;
+      background: #020617;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    textarea::placeholder { color: #6b7280; }
+
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .userInputBox {
+      position: fixed;
+      bottom: 10px;
+      left: 11.75in;
+      right: 0.1in;
+      height: 25vh;
+      background: #071028;
+      border: 4px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.02);
+      display: flex;
+      flex-direction: column;
+      z-index: 2;
+    }
+
+    .responseContent {
+      position: fixed;
+      height: 98.5vh;
+      top: 5px;
+      flex: 1 1 auto;
+      overflow-y: auto;
+      color: var(--text);
+      font-size: 1rem;
+      background-color: rgb(43, 0, 49);
+      padding: 10px;
+      border-radius: 8px;
+      line-height: 1.5;
+      left: 0.1in;
+      right: 8.5in;
+      border: 4px solid var(--border);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.02);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="guide"></div>
+
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <div class="brand">Qwen</div>
+      <nav class="topbar-nav" aria-label="Header options">
+        <button type="button">New Chat</button>
+        <button type="button">Tools</button>
+        <button type="button">Files</button>
+        <select>
+          <option>Qwen2.5-7B</option>
+          <option>Qwen2.5-14B</option>
+        </select>
+      </nav>
+    </div>
+
+    <div class="topbar-right">
+      <button type="button" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 10px;border-radius:10px;cursor:pointer;">
+        Settings
+      </button>
+    </div>
+  </header>
+
+  <button class="topbar-toggle" id="topbarToggle" type="button" aria-label="Toggle header">
+    <span>▴</span>
+  </button>
+
+  <main>
+    <div class="responseContent">Skeleton Page Content</div>
+  </main>
+
+  <div class="userInputBox">
+    <div class="editor-wrapper">
+      <div class="editor-header">
+        <span>Editor</span>
+        <button type="button">Send</button>
+      </div>
+
+      <textarea placeholder="Type here..."></textarea>
+    </div>
+  </div>
+
+  <script>
+    const topbar = document.getElementById("topbar");
+    const toggle = document.getElementById("topbarToggle");
+
+    function setHidden(isHidden) {
+      topbar.classList.toggle("hidden", isHidden);
+      toggle.classList.toggle("hidden", isHidden);
+    }
+
+    setHidden(false);
+
+    toggle.addEventListener("click", () => {
+      const isHidden = topbar.classList.contains("hidden");
+      setHidden(!isHidden);
+    });
+  </script>
+</body>
+</html>

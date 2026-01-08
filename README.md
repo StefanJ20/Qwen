@@ -4,8 +4,6 @@ A local AI web application built with **Django** and **Qwen2.5-7B-Instruct**, ru
 
 This project is my foundation for **tool-using agents**, structured outputs, and a custom AI interface with full control over inference, context, and execution.
 
----
-
 ## Features
 
 - Local LLM inference using **Qwen2.5-7B-Instruct**
@@ -14,8 +12,6 @@ This project is my foundation for **tool-using agents**, structured outputs, and
 - Django-based API backend
 - Custom HTML/CSS frontend
 - Hugging Face model caching
-
----
 
 ## Tech Stack
 
@@ -34,10 +30,9 @@ This project is my foundation for **tool-using agents**, structured outputs, and
 - CSS (custom, no framework)
 - JavaScript (minimal, expandable)
 
----
-
 ## Project Structure
 
+```text 
 Qwen/
 ├── manage.py
 ├── QwenWebAPI/            # Django project config
@@ -53,7 +48,7 @@ Qwen/
 │   ├── urls.py
 │   └── ...
 └── README.md              # Read Me (THIS OBVIOUSLY DUH)
-
+```
 
 ## Dependencies
 

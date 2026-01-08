@@ -2,6 +2,21 @@
 {% load static %}
 <html lang="en">
 <head>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked-katex-extension@5.1.1/lib/index.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(', '\\)'], ['$', '$']],
+      displayMath: [['\\[', '\\]'], ['$$', '$$']]
+    }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
   <meta charset="UTF-8" />
   <title>Qwen</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -165,10 +180,10 @@
       display: flex;
       flex-direction: column;
       position: fixed;
-      width: 25%;
+      width: 37%;
       height: 22vh;
       bottom: 24px;
-      left: 11.9in;
+      left: 12in;
       background: var(--panel);
       border: 2px solid var(--border);
       border-radius: 14px;
@@ -229,7 +244,7 @@
       left: 11.75in;
       right: 0.1in;
       height: 25vh;
-      background: #071028;
+      background: #5b3c74;
       border: 4px solid var(--border);
       border-radius: 14px;
       padding: 14px;
@@ -257,9 +272,9 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.02);
     }
 
-    .responseContent {
-        white-space: pre-wrap;
-    }
+    .responseContent { white-space: normal; }
+    .responseContent pre { white-space: pre-wrap; }
+    
   </style>
 </head>
 
@@ -308,54 +323,71 @@
 </body>
 
 <script>
-    let thinking = false;
-    const CHAT_API_URL = "{% url 'chat_api' %}";
-    const topbar = document.getElementById("topbar");
-    const toggle = document.getElementById("topbarToggle");
-    const responseContent = document.querySelector(".responseContent");
-    const sendButton = document.getElementById("sendButton");
-    const textInput = document.getElementById("userInput");
+    document.addEventListener("DOMContentLoaded", () => {
 
-    function setHidden(isHidden) {
-        topbar.classList.toggle("hidden", isHidden);
-        toggle.classList.toggle("hidden", isHidden);
-    }
+        function renderMarkdown(md) {
+            const html = marked.parse(md);
+            responseContent.innerHTML = DOMPurify.sanitize(html);
 
-    setHidden(false);
-    toggle.addEventListener("click", () => {
-        setHidden(!topbar.classList.contains("hidden"));
-    });
-
-    sendButton.addEventListener("click", async () => {
-        if (thinking === true) return;
-        const userText = textInput.value.trim();
-        if (!userText) return;
-        responseContent.textContent = "Prompt: " + userText + "\n\n" + "Thinking...";
-        textInput.value = "";
-        thinking = true;
-        try {
-            const messages = [{ role: "user", content: userText }];
-
-            const res = await fetch(CHAT_API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ messages, max_new_tokens: 2000 })
-            });
-
-            if (!res.ok) {
-                const errText = await res.text();
-                responseContent.textContent = `Server error (${res.status}): ${errText}`;
-                return;
+            if (window.MathJax && typeof MathJax.typesetPromise === "function") {
+                MathJax.typesetPromise([responseContent]);
             }
-
-            const data = await res.json();
-            responseContent.textContent = data.response ?? "(No response)";
-            thinking = false;
-        } catch (e) {
-            responseContent.textContent = `Fetch failed: ${e}`;
-            thinking = false;
         }
+      
+        function renderText(text) {
+            responseContent.textContent = text;
+        }
+      
+        let thinking = false;
+        const CHAT_API_URL = "{% url 'chat_api' %}";
+        const topbar = document.getElementById("topbar");
+        const toggle = document.getElementById("topbarToggle");
+        const responseContent = document.querySelector(".responseContent");
+        const sendButton = document.getElementById("sendButton");
+        const textInput = document.getElementById("userInput");
+      
+        function setHidden(isHidden) {
+            topbar.classList.toggle("hidden", isHidden);
+            toggle.classList.toggle("hidden", isHidden);
+        }
+      
+        setHidden(false);
+        toggle.addEventListener("click", () => {
+            setHidden(!topbar.classList.contains("hidden"));
+        });
+      
+        console.log("sendButton:", sendButton);
+        sendButton.addEventListener("click", async () => {
+            if (thinking) return;
+            const userText = textInput.value.trim();
+            if (!userText) return;
+            responseContent.textContent = "Prompt: " + userText + "\n\n" + "Thinking...";
+            textInput.value = "";
+            thinking = true;
+            try {
+                const messages = [{ role: "user", content: userText }];
+            
+                const res = await fetch(CHAT_API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ messages, max_new_tokens: 2000 })
+                });
+              
+                if (!res.ok) {
+                    responseContent.textContent = `Server error (${res.status}): ${await res.text()}`;
+                    return;
+                }
+              
+                const data = await res.json();
+                if (data.format === "markdown") renderMarkdown(data.content);
+                else renderText(data.content);
+              
+            } catch (e) {
+                responseContent.textContent = `Fetch failed: ${e}`;
+            } finally {
+                thinking = false;
+            }
+        });
     });
 </script>
-
 </html>

@@ -14,4 +14,4 @@ def chat_api(request):
     max_new_tokens = int(payload.get("max_new_tokens", 512))
 
     response = chat(messages, max_new_tokens=max_new_tokens)
-    return JsonResponse({"response": response})
+    return JsonResponse(response)

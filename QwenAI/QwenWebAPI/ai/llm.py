@@ -1,16 +1,18 @@
 # ai/llm.py
-from transformers import AutoModelForCausalLM, AutoTokenizer # type: ignore
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig # type: ignore
+import torch # type: ignore
 
-MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
+MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
+
+bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16)
 
 # Load once, at import time
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
-    dtype="auto",
-    device_map="auto",
+    quantization_config=bnb,
+    device_map="auto"
 )
-
 def chat(messages, max_new_tokens=512, max_input_tokens=6000):
     text = tokenizer.apply_chat_template(
         messages,

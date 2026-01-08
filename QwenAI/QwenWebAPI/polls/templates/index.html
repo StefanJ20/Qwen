@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -246,7 +247,7 @@
       overflow-y: auto;
       color: var(--text);
       font-size: 1rem;
-      background-color: rgb(43, 0, 49);
+      background-color: rgb(25, 2, 27);
       padding: 10px;
       border-radius: 8px;
       line-height: 1.5;
@@ -254,6 +255,10 @@
       right: 8.5in;
       border: 4px solid var(--border);
       box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.02);
+    }
+
+    .responseContent {
+        white-space: pre-wrap;
     }
   </style>
 </head>
@@ -287,35 +292,70 @@
   </button>
 
   <main>
-    <div class="responseContent">Skeleton Page Content</div>
+    <div class="responseContent">Your Agent's response will appear here.</div>
   </main>
 
   <div class="userInputBox">
     <div class="editor-wrapper">
       <div class="editor-header">
         <span>Editor</span>
-        <button type="button">Send</button>
+        <button type="button" id="sendButton">Send</button>
       </div>
 
-      <textarea placeholder="Type here..."></textarea>
+      <textarea placeholder="Type here..." id="userInput"></textarea>
     </div>
   </div>
+</body>
 
-  <script>
+<script>
+    let thinking = false;
+    const CHAT_API_URL = "{% url 'chat_api' %}";
     const topbar = document.getElementById("topbar");
     const toggle = document.getElementById("topbarToggle");
+    const responseContent = document.querySelector(".responseContent");
+    const sendButton = document.getElementById("sendButton");
+    const textInput = document.getElementById("userInput");
 
     function setHidden(isHidden) {
-      topbar.classList.toggle("hidden", isHidden);
-      toggle.classList.toggle("hidden", isHidden);
+        topbar.classList.toggle("hidden", isHidden);
+        toggle.classList.toggle("hidden", isHidden);
     }
 
     setHidden(false);
-
     toggle.addEventListener("click", () => {
-      const isHidden = topbar.classList.contains("hidden");
-      setHidden(!isHidden);
+        setHidden(!topbar.classList.contains("hidden"));
     });
-  </script>
-</body>
+
+    sendButton.addEventListener("click", async () => {
+        if (thinking === true) return;
+        const userText = textInput.value.trim();
+        if (!userText) return;
+        responseContent.textContent = "Prompt: " + userText + "\n\n" + "Thinking...";
+        textInput.value = "";
+        thinking = true;
+        try {
+            const messages = [{ role: "user", content: userText }];
+
+            const res = await fetch(CHAT_API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ messages, max_new_tokens: 2000 })
+            });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                responseContent.textContent = `Server error (${res.status}): ${errText}`;
+                return;
+            }
+
+            const data = await res.json();
+            responseContent.textContent = data.response ?? "(No response)";
+            thinking = false;
+        } catch (e) {
+            responseContent.textContent = `Fetch failed: ${e}`;
+            thinking = false;
+        }
+    });
+</script>
+
 </html>

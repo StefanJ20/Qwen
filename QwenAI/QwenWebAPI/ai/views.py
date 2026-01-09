@@ -15,6 +15,10 @@ MATH_LIGHT = re.compile(
     r"|[=^_]|(\b\d+\s*[\+\-\*/]\s*\d+\b)",
     re.I
 )
+LONG_ESSAY_STYLE_PROMPT = re.compile(
+    r"\b(write|compose|draft|create).{0,20}\b(essay|article|story|narrative|report|summary|description|explanation|analysis)\b",
+    re.I
+)
 
 def pick_limit(messages):
     s = next((m.get("content","") for m in reversed(messages) if m.get("role")=="user"), "")
@@ -22,6 +26,8 @@ def pick_limit(messages):
         return 2000
     if MATH_LIGHT.search(s):
         return 1200
+    if LONG_ESSAY_STYLE_PROMPT.search(s):
+        return 1800
     return 800
 
 @csrf_exempt

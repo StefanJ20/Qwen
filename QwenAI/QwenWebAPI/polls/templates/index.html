@@ -271,6 +271,16 @@
     }
 
     .responseContent {
+        scrollbar-width: none;  
+        -ms-overflow-style: none;  
+    }
+
+    .responseContent::-webkit-scrollbar {
+        display: none;         
+    }
+
+
+    .responseContent {
         overflow-wrap: anywhere;
         word-break: break-word;
     }
@@ -301,7 +311,14 @@
         margin: 0.25rem 0;
         padding-left: 1.2rem;   
     }
-
+    
+    .responseContent.empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: var(--muted);
+    }
     
   </style>
 </head>
@@ -335,7 +352,7 @@
   </button>
 
   <main>
-    <div class="responseContent">Your Agent's response will appear here.</div>
+    <div class="responseContent empty">Your Agent's response will appear here.</div>
   </main>
 
   <div class="userInputBox">
@@ -456,7 +473,7 @@
               
                 const data = await res.json();
                 const s = data.content;
-                console.log(s);   
+                responseContent.classList.remove("empty");  
                 if (data.format === "markdown") renderMarkdown(data.content);
                 else renderText(data.content);
             } catch (e) {

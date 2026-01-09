@@ -1,8 +1,9 @@
 # ai/llm.py
+from ast import pattern
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig # type: ignore
 import torch # type: ignore
 
-MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
+MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
 
 bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16)
 
@@ -10,16 +11,17 @@ SYSTEM = {
   "role": "system",
   "content": (
     "Output Markdown.\n"
-    "All equations must be in LaTeX using \\[ ... \\] for display and \\( ... \\) inline.\n"
-    "Never use [ ... ] or ( x ) for math.\n"
-    "When defining variables, ALWAYS format as a bullet list, one per line:\n"
-    "- \\(symbol\\): description\n"
-    "Structure your responses for readability:\n"
-    "- Break content into sections with short paragraphs.\n"
-    "- Prefer bullet lists for definitions and explanations.\n"
-    "- Indent sub-points as nested bullet lists.\n"
-    "- Place equations on separate lines.\n"
-    "- Avoid dense text blocks longer than 3–4 lines.\n"
+    "Be complete: do not stop early. If solving a math problem, show the full work and the final result.\n"
+    "If you introduce \\(A\\), compute what is asked (eigenvalues, determinant, etc.) instead of stopping.\n"
+    "\n"
+    "Math formatting:\n"
+    "- Inline: \\( ... \\)\n"
+    "- Display: \\[ ... \\]\n"
+    "- Matrices: \\begin{bmatrix} ... \\end{bmatrix}\n"
+    "\n"
+    "Restrictions:\n"
+    "- No other LaTeX environments.\n"
+    "- No unicode math symbols; use TeX commands.\n"
   )
 }
 
@@ -27,7 +29,7 @@ tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
     quantization_config=bnb,
-    device_map="auto"
+    device_map={"": 0},
 )
 
 def chat(messages, max_new_tokens=512, max_input_tokens=6000) -> dict[str, any]:
@@ -48,13 +50,21 @@ def chat(messages, max_new_tokens=512, max_input_tokens=6000) -> dict[str, any]:
     outputs = model.generate(
         **inputs,
         max_new_tokens=max_new_tokens,
-        do_sample=False,   # keep greedy for speed
+        do_sample=False, 
+        temperature=None,
+        top_p=None,
+        repetition_penalty=1.05, 
+        no_repeat_ngram_size=0, 
+        eos_token_id=tokenizer.eos_token_id,
+        pad_token_id=tokenizer.eos_token_id,
         use_cache=True,
     )
 
     out = outputs[0][inputs.input_ids.shape[1]:]
     decoded = tokenizer.decode(out, skip_special_tokens=True).strip()
     decoded = normalize_math(decoded)
+    print(decoded[decoded.find("\\left")-10:decoded.find("\\left")+10])
+    print(decoded[decoded.find("\\\\left")-10:decoded.find("\\\\left")+10])
 
     fmt = "markdown"
     return {"format": fmt, "content": decoded}
@@ -63,43 +73,70 @@ def chat(messages, max_new_tokens=512, max_input_tokens=6000) -> dict[str, any]:
 import re
 from typing import Any, Dict, List
 
-MD_HINTS = [
-    r"^#{1,6}\s", 
-    r"```",       
-    r"^\s*[-*+]\s+",  
-    r"^\s*\d+\.\s+",  
-    r"\$\$[\s\S]*\$\$",
-    r"\\\(", r"\\\)",
-    r"\\\[", r"\\\]",  
-]
+CODE_FENCE = re.compile(r"(```[\s\S]*?```)", re.MULTILINE)
+DISPLAY_MATH = re.compile(r"(\\\[[\s\S]*?\\\])")
+INLINE_MATH = re.compile(r"(\\\([\s\S]*?\\\))")
+
+def split_keep(pattern, s):
+    parts = pattern.split(s)
+    return [p for p in parts if p]
+
+def normalize_matrix_envs(s: str) -> str:
+    s = re.sub(r"\\begin\{[A-Za-z]*matri[a-z]*\}", r"\\begin{bmatrix}", s)
+    s = re.sub(r"\\end\{[A-Za-z]*matri[a-z]*\}", r"\\end{bmatrix}", s)
+    s = re.sub(r"\\begin\{bmatri[a-z]*\}", r"\\begin{bmatrix}", s)
+    s = re.sub(r"\\end\{bmatri[a-z]*\}", r"\\end{bmatrix}", s)
+    return s
+
+def fix_unicode_math(s: str) -> str:
+    UNICODE_TEX_MAP = {
+        "Δ": r"\Delta",
+        "μ": r"\mu",
+        "π": r"\pi",
+        "→": r"\rightarrow",
+        "←": r"\leftarrow",
+        "≤": r"\le",
+        "≥": r"\ge",
+    }
+    s = re.sub(r"\\\s*λ", r"\\lambda", s)
+    s = re.sub(r"\\\s*θ", r"\\theta", s)
+    s = re.sub(r"\\\s*σ", r"\\sigma", s)
+    s = re.sub(r"\\\s*δ", r"\\delta", s)
+    s = re.sub(r"\\\s+\\lambda", r"\\lambda", s)
+    s = s.replace("λ", r"\lambda")
+    for ch, tex in UNICODE_TEX_MAP.items():
+        s = s.replace(ch, tex)
+    return s
 
 def normalize_math(text: str) -> str:
-    def repl_block(m: re.Match) -> str:
-        inner = m.group(1).strip()
-        return f"\\[\n{inner}\n\\]"
-    text = re.sub(r"(?ms)^\s*\[\s*(.+?)\s*\]\s*$", repl_block, text)
-    def repl_inline(m: re.Match) -> str:
-        inner = m.group(1).strip()
-        return f"\\[{inner}\\]"
-    text = re.sub(
-        r"\[\s*([^\[\]\n]*?(?:=|\\[A-Za-z]+|[_^]|\\frac|\\Delta|\\int|\\sum|\d)[^\[\]\n]*?)\s*\]",
-        repl_inline,
-        text,
-    )
-    text = re.sub(
-        r"\(\s*([A-Za-z]+(?:_[A-Za-z0-9]+)?|\\[A-Za-z]+|[^()\n]*?(?:\\[A-Za-z]+|[_^]|=|\d)[^()\n]*?)\s*\)",
-        r"\\(\1\\)",
-        text,
-    )
-    return text
+    chunks = split_keep(CODE_FENCE, text)
+    out = []
 
+    for chunk in chunks:
+        # 1) Never touch code blocks
+        if chunk.startswith("```"):
+            out.append(chunk)
+            continue
 
-def looks_like_markdown(text: str) -> bool:
-    t = text.strip()
-    for pat in MD_HINTS:
-        if re.search(pat, t, flags=re.MULTILINE):
-            return True
-    return False
+        # 2) Split display math
+        parts = split_keep(DISPLAY_MATH, chunk)
+        for part in parts:
+            if part.startswith(r"\[") and part.endswith(r"\]"):
+                # math block — minimal safe fixes only
+                part = fix_unicode_math(part)
+                part = normalize_matrix_envs(part)
+                out.append(part)
+            else:
+                # 3) Split inline math inside text
+                sub = split_keep(INLINE_MATH, part)
+                for s in sub:
+                    if s.startswith(r"\(") and s.endswith(r"\)"):
+                        s = fix_unicode_math(s)
+                        s = normalize_matrix_envs(s)
+                        out.append(s)
+                    else:
+                        # plain text cleanup only
+                        s = re.sub(r"\\{2,}(?=[A-Za-z])", r"\\", s)
+                        out.append(s)
 
-
-
+    return "".join(out)

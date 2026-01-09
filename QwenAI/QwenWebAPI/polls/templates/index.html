@@ -16,7 +16,7 @@
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
   <meta charset="UTF-8" />
-  <title>Qwen</title>
+  <title>Martin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -312,14 +312,111 @@
         padding-left: 1.2rem;   
     }
     
-    .responseContent.empty {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        color: var(--muted);
+    .msg {
+        max-width: 85%;
+        width: fit-content;
+        padding: 10px 14px;
+        margin: 8px 0;
+        border-radius: 18px;
+        border: 2px solid var(--border);
+        line-height: 1.45;
+        word-wrap: break-word;
+        box-shadow:
+          0 1px 1px rgba(0,0,0,0.15),
+          inset 0 0 0 1px rgba(255,255,255,0.04);
     }
-    
+
+    .msg-meta {
+      font-size: 0.7rem;
+      opacity: 0.65;
+      margin-bottom: 4px;
+      user-select: none;
+    }
+
+    .msg.user {
+      margin-left: auto;
+      background-color: rgb(25, 2, 27);
+      color: #ffffff;
+      border-bottom-right-radius: 6px;
+    }
+
+    .msg.user::after {
+      content: "";
+      position: absolute;
+      right: -6px;
+      bottom: 8px;
+      width: 10px;
+      height: 10px;
+      background: #006edc;
+      border-bottom-left-radius: 10px;
+      transform: rotate(45deg);
+    }
+
+    .msg.assistant {
+      margin-right: auto;
+      margin-left: 2px;
+      background: linear-gradient(
+        180deg,
+        #2c2f36,
+        #1f2228
+      );
+      color: var(--text);
+      border-bottom-left-radius: 6px;
+    }
+
+    .msg.assistant::after {
+      content: "";
+      position: absolute;
+      left: -6px;
+      bottom: 8px;
+      width: 10px;
+      height: 10px;
+      background: #1f2228;
+      border-bottom-right-radius: 10px;
+      transform: rotate(45deg);
+    }
+
+    .msg-body > :first-child { margin-top: 0; }
+    .msg-body > :last-child { margin-bottom: 0; }
+
+    .msg-body p {
+      margin: 0.45em 0;
+    }
+
+    .msg-body {
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .msg-body pre {
+      background: rgba(0,0,0,0.25);
+      max-width: 100%;
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding: 10px;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+
+    .msg-body code {
+      background: rgba(0,0,0,0.25);
+      padding: 2px 6px;
+      max-width: 100%;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border-radius: 6px;
+      font-size: 0.9em;
+    }
+
+    .responseContent.empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: var(--muted);
+    }
+
   </style>
 </head>
 
@@ -352,13 +449,14 @@
   </button>
 
   <main>
-    <div class="responseContent empty">Your Agent's response will appear here.</div>
+    <div class="responseContent empty">Martin's response will appear here.</div>
   </main>
 
   <div class="userInputBox">
     <div class="editor-wrapper">
       <div class="editor-header">
         <span>Editor</span>
+        <span id="thinking" style="opacity: 0;">Martin is Thinking...</span>
         <button type="button" id="sendButton">Send</button>
       </div>
 
@@ -368,6 +466,7 @@
 </body>
 
 <script>
+    let history = [];
     document.addEventListener("DOMContentLoaded", () => {
 
         function protectMathOutsideCode(md) {
@@ -410,26 +509,61 @@
                 .replace(/\\\\\]/g, "\\]")
                 .replace(/\\\\\(/g, "\\(")
                 .replace(/\\\\\)/g, "\\)");
-      }
+        }
+
+        function escapeHTML(s) {
+          return s
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+        }
+
+        function roleLabel(role) {
+          return role === "user" ? "You" : "Martin";
+        }
 
 
-        function renderMarkdown(md) {
-            md = normalizeTexDelimiters(md);
-            md = md.replace(/^\s{4,}(\\\[|\\\(|\\begin\{)/gm, "$1");
-            const { src, blocks, inlines } = protectMathOutsideCode(md);
+        function renderMarkdown(history) {
             marked.setOptions({ mangle: false, headerIds: false });
+            const combinedMd = history.map((m) => {
+                const role = m.role === "user" ? "user" : "assistant";
+                return `<div class="msg ${role}">
+                        <div class="msg-meta">${roleLabel(m.role)}</div>
+                        <div class="msg-body">
+                        ${m.content}
+                        </div></div>`;
+            }).join("\n\n");
+            let md = normalizeTexDelimiters(combinedMd);
+            md = md.replace(/^\s{4,}(\\\[|\\\(|\\begin\{)/gm, "$1");
+        
+            const { src, blocks, inlines } = protectMathOutsideCode(md);
+        
             let html = marked.parse(src);
             html = restoreMath(html, blocks, inlines);
+        
             responseContent.innerHTML = DOMPurify.sanitize(html);
+        
             if (window.MathJax?.typesetPromise) {
                 MathJax.typesetClear([responseContent]);
                 MathJax.typesetPromise([responseContent]);
             }
+            responseContent.scrollTop = responseContent.scrollHeight;
         }
 
-      
-        function renderText(text) {
-            responseContent.textContent = text;
+        function renderText(history) {
+            const html = history.map((m) => {
+                const role = m.role === "user" ? "user" : "assistant";
+                return `<div class="msg ${role}">
+                        <div class="msg-meta">${roleLabel(m.role)}</div>
+                        <pre class="msg-body" style="white-space:pre-wrap;margin:0;">
+                        ${escapeHTML(m.content)}
+                        </pre></div>`;
+            }).join("");
+
+            responseContent.innerHTML = DOMPurify.sanitize(html);
+            responseContent.scrollTop = responseContent.scrollHeight;
         }
       
         let thinking = false;
@@ -439,6 +573,7 @@
         const responseContent = document.querySelector(".responseContent");
         const sendButton = document.getElementById("sendButton");
         const textInput = document.getElementById("userInput");
+        const thinkingIndicator = document.getElementById("thinking");
       
         function setHidden(isHidden) {
             topbar.classList.toggle("hidden", isHidden);
@@ -454,31 +589,31 @@
             if (thinking) return;
             const userText = textInput.value.trim();
             if (!userText) return;
-            responseContent.textContent = "Thinking...";
             textInput.value = "";
             thinking = true;
+            thinkingIndicator.style.opacity = 1;
+            history.push({ role: "user", content: userText });
             try {
-                const messages = [{ role: "user", content: userText }];
-            
                 const res = await fetch(CHAT_API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messages, max_new_tokens: 2000 })
+                    body: JSON.stringify({ history, max_new_tokens: 2000 })
                 });
               
                 if (!res.ok) {
                     responseContent.textContent = `Server error (${res.status}): ${await res.text()}`;
                     return;
                 }
-              
                 const data = await res.json();
                 const s = data.content;
-                responseContent.classList.remove("empty");  
-                if (data.format === "markdown") renderMarkdown(data.content);
-                else renderText(data.content);
+                responseContent.classList.remove("empty");
+                history.push({ role: "assistant", content: s });
+                if (data.format === "markdown") renderMarkdown(history);
+                else renderText(history);
             } catch (e) {
                 responseContent.textContent = `Fetch failed: ${e}`;
             } finally {
+                thinkingIndicator.style.opacity = 0;
                 thinking = false;
             }
         });

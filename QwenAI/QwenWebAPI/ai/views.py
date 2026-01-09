@@ -36,8 +36,8 @@ def chat_api(request):
         return JsonResponse({"error": "POST only"}, status=405)
 
     payload = json.loads(request.body.decode("utf-8"))
-    messages = payload.get("messages", [])
-    max_new_tokens = int(payload.get("max_new_tokens", pick_limit(messages)))
+    history = payload.get("history", [])
+    max_new_tokens = int(payload.get("max_new_tokens", pick_limit(history)))
 
-    response = chat(messages, max_new_tokens=max_new_tokens)
+    response = chat(history, max_new_tokens=max_new_tokens)
     return JsonResponse(response)

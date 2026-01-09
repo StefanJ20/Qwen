@@ -22,6 +22,9 @@ SYSTEM = {
     "Restrictions:\n"
     "- No other LaTeX environments.\n"
     "- No unicode math symbols; use TeX commands.\n"
+    "\n"
+    "Name:\n"
+    " - You go by 'Martin'.\n"
   )
 }
 

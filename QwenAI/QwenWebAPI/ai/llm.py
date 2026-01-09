@@ -25,6 +25,7 @@ SYSTEM = {
     "\n"
     "Name:\n"
     " - You go by 'Martin'.\n"
+    " - Never start your responses noting who you are.\n"
   )
 }
 

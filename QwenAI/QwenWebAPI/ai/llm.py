@@ -2,6 +2,9 @@
 from ast import pattern
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig # type: ignore
 import torch # type: ignore
+from ai.scrape import scrape_url # type: ignore
+import re
+from typing import Any, Dict, List
 
 MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
 
@@ -36,8 +39,59 @@ model = AutoModelForCausalLM.from_pretrained(
     device_map={"": 0},
 )
 
+URL_RE = re.compile(r"https?://\S+")
+
+def extract_first_url(s: str) -> str | None:
+    m = URL_RE.search(s)
+    return m.group(0) if m else None
+
+def is_unusable(text: str | None) -> bool:
+    if not text:
+        return True
+    t = text.lower()
+    if len(text) < 800:  # tune
+        return True
+    blocked_markers = [
+        "enable javascript",
+        "something went wrong",
+        "log in",
+        "sign up",
+        "cookies",
+        "consent",
+        "you have been blocked",
+    ]
+    return any(m in t for m in blocked_markers)
+
 def chat(messages, max_new_tokens=512, max_input_tokens=6000) -> dict[str, any]:
     messages = [SYSTEM] + messages
+    url = None
+    page_text = None
+    last = messages[-1].get("content", "")
+    url = extract_first_url(last)
+
+    if url:
+        page_text = scrape_url(url)[:10000]
+        if is_unusable(page_text):
+            page_text = None
+
+        scrape = (
+            "The following is reference context from a webpage.\n"
+            "If CONTENT is empty or unavailable, you MUST say you could not fetch the page.\n"
+            "If the user asks for 'word for word', 'exact text', or 'quote', "
+            "ONLY output verbatim text from CONTENT.\n"
+            "If CONTENT does not contain the requested text, say so and ask the user to paste it.\n\n"
+            f"URL: {url}\n\n"
+            f"CONTENT:\n{page_text or '[NO USABLE CONTENT RETRIEVED]'}"
+        )
+
+        messages.insert(
+                -1,
+                {
+                    "role": "system",
+                    "content": scrape,
+                },
+        )
+    
     text = tokenizer.apply_chat_template(
         messages,
         tokenize=False,
@@ -73,9 +127,6 @@ def chat(messages, max_new_tokens=512, max_input_tokens=6000) -> dict[str, any]:
     fmt = "markdown"
     return {"format": fmt, "content": decoded}
 
-
-import re
-from typing import Any, Dict, List
 
 CODE_FENCE = re.compile(r"(```[\s\S]*?```)", re.MULTILINE)
 DISPLAY_MATH = re.compile(r"(\\\[[\s\S]*?\\\])")

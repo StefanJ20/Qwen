@@ -1,0 +1,243 @@
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>Minesweeper Game</title>  
+    <style>  
+        .minefield {  
+            display: grid;  
+            grid-template-columns: repeat(10, 30px);  
+            grid-template-rows: repeat(10, 30px);  
+            gap: 1px;  
+            margin: 20px auto;  
+            width: 300px;  
+            height: 300px;  
+            background-color: #f0f0f0;  
+            border: 1px solid #ccc;  
+        }  
+        .minefield div {  
+            display: flex;  
+            justify-content: center;  
+            align-items: center;  
+            font-size: 14px;  
+            cursor: pointer;  
+            transition: background-color 0.3s;  
+        }  
+        .minefield div:hover {  
+            background-color: #ddd;  
+        }  
+        .minefield div.mine {  
+            background-color: #ff0000;  
+        }  
+        .minefield div.number {  
+            color: #000;  
+        }  
+    </style>  
+</head>  
+<body>  
+    <div class="minefield" id="minefield">  
+        <!-- Example minefield with 10x10 grid -->  
+        <!-- Replace these with actual game logic -->  
+        <div class="mine"></div>  
+        <div class="number">1</div>
+        <div class="mine"></div>  
+        <div class="number">2</div>  
+        <div class="mine"></div>  
+        <div class="number">3</div>
+        <div class="mine"></div>  
+        <div class="number">4</div>
+        <div class="mine"></div>  
+        <div class="number">5</div>  
+        <div class="mine"></div>  
+        <div class="number">6</div>
+        <div class="mine"></div>  
+        <div class="number">7</div>  
+        <div class="mine"></div>  
+        <div class="number">8</div>
+        <div class="mine"></div>  
+        <div class="number">9</div>  
+        <div class="mine"></div>  
+        <div class="number">10</div>  
+        <div class="mine"></div>  
+        <div class="number">11</div>  
+        <div class="mine"></div>  
+        <div class="number">12</div>  
+        <div class="mine"></div>  
+        <div class="number">13</div>  
+        <div class="mine"></div>  
+        <div class="number">14</div>  
+        <div class="mine"></div>  
+        <div class="number">15</div>  
+        <div class="mine"></div>  
+        <div class="number">16</div>  
+        <div class="mine"></div>  
+        <div class="number">17</div>  
+        <div class="mine"></div>  
+        <div class="number">18</div>  
+        <div class="mine"></div>  
+        <div class="number">19</div>  
+        <div class="mine"></div>  
+        <div class="number">20</div>  
+        <div class="mine"></div>  
+        <div class="number">21</div>  
+        <div class="mine"></div>  
+        <div class="number">22</div>  
+        <div class="mine"></div>  
+        <div class="number">23</div>  
+        <div class="mine"></div>  
+        <div class="number">24</div>  
+        <div class="mine"></div>  
+        <div class="number">25</div>  
+        <div class="mine"></div>  
+        <div class="number">26</div>  
+        <div class="mine"></div>  
+        <div class="number">27</div>  
+        <div class="mine"></div>  
+        <div class="number">28</div>  
+        <div class="mine"></div>  
+        <div class="number">29</div>  
+        <div class="mine"></div>  
+        <div class="number">30</div>  
+        <div class="mine"></div>  
+        <div class="number">31</div>  
+        <div class="mine"></div>  
+        <div class="number">32</div>  
+        <div class="mine"></div>  
+        <div class="number">33</div>  
+        <div class="mine"></div>  
+        <div class="number">34</div>  
+        <div class="mine"></div>  
+        <div class="number">35</div>  
+        <div class="mine"></div>  
+        <div class="number">36</div>  
+        <div class="mine"></div>  
+        <div class="number">37</div>  
+        <div class="mine"></div>  
+        <div class="number">38</div>  
+        <div class="mine"></div>  
+        <div class="number">39</div>  
+        <div class="mine"></div>  
+        <div class="number">40</div>  
+        <div class="mine"></div>  
+        <div class="number">41</div>  
+        <div class="mine"></div>  
+        <div class="number">42</div>  
+        <div class="mine"></div>  
+        <div class="number">43</div>  
+        <div class="mine"></div>  
+        <div class="number">44</div>  
+        <div class="mine"></div>  
+        <div class="number">45</div>  
+        <div class="mine"></div>  
+        <div class="number">46</div>  
+        <div class="mine"></div>  
+        <div class="number">47</div>  
+        <div class="mine"></div>  
+        <div class="number">48</div>  
+        <div class="mine"></div>  
+        <div class="number">49</div>  
+        <div class="mine"></div>  
+        <div class="number">50</div>  
+        <div class="mine"></div>  
+        <div class="number">51</div>  
+        <div class="mine"></div>  
+        <div class="number">52</div>  
+        <div class="mine"></div>  
+        <div class="number">53</div>  
+        <div class="mine"></div>  
+        <div class="number">54</div>  
+        <div class="mine"></div>  
+        <div class="number">55</div>  
+        <div class="mine"></div>  
+        <div class="number">56</div>  
+        <div class="mine"></div>  
+        <div class="number">57</div>  
+        <div class="mine"></div>  
+        <div class="number">58</div>  
+        <div class="mine"></div>  
+        <div class="number">59</div>  
+        <div class="mine"></div>  
+        <div class="number">60</div>  
+        <div class="mine"></div>  
+        <div class="number">61</div>  
+        <div class="mine"></div>  
+        <div class="number">62</div>  
+        <div class="mine"></div>  
+        <div class="number">63</div>  
+        <div class="mine"></div>  
+        <div class="number">64</div>  
+        <div class="mine"></div>  
+        <div class="number">65</div>  
+        <div class="mine"></div>  
+        <div class="number">66</div>  
+        <div class="mine"></div>  
+        <div class="number">67</div>  
+        <div class="mine"></div>  
+        <div class="number">68</div>  
+        <div class="mine"></div>  
+        <div class="number">69</div>  
+        <div class="mine"></div>  
+        <div class="number">70</div>  
+        <div class="mine"></div>  
+        <div class="number">71</div>  
+        <div class="mine"></div>  
+        <div class="number">72</div>  
+        <div class="mine"></div>  
+        <div class="number">73</div>  
+        <div class="mine"></div>  
+        <div class="number">74</div>  
+        <div class="mine"></div>  
+        <div class="number">75</div>  
+        <div class="mine"></div>  
+        <div class="number">76</div>  
+        <div class="mine"></div>  
+        <div class="number">77</div>  
+        <div class="mine"></div>  
+        <div class="number">78</div>  
+        <div class="mine"></div>  
+        <div class="number">79</div>  
+        <div class="mine"></div>  
+        <div class="number">80</div>  
+        <div class="mine"></div>  
+        <div class="number">81</div>  
+        <div class="mine"></div>  
+        <div class="number">82</div> 
+        <div class="mine"></div>
+        <div class="number">83</div>
+        <div class="mine"></div>
+        <div class="number">84</div>  
+        <div class="mine"></div>  
+        <div class="number">85</div>  
+        <div class="mine"></div>  
+        <div class="number">86</div>  
+        <div class="mine"></div>  
+        <div class="number">87</div>  
+        <div class="mine"></div>  
+        <div class="number">88</div>  
+        <div class="mine"></div>  
+        <div class="number">89</div>  
+        <div class="mine"></div>  
+        <div class="number">90</div>  
+        <div class="mine"></div>  
+        <div class="number">91</div>  
+        <div class="mine"></div>  
+        <div class="number">92</div>  
+        <div class="mine"></div>  
+        <div class="number">93</div>  
+        <div class="mine"></div>  
+        <div class="number">94</div> 
+        <div class="mine"></div>
+        <div class="number">95</div>
+        <div class="mine"></div>
+        <div class="number">96</div>  
+        <div class="mine"></div>  
+        <div class="number">97</div>  
+        <div class="mine"></div>  
+        <div class="number">98</div>  
+        <div class="mine"></div>  
+        <div class="number">99</div>  
+        <div class="mine"></div>  
+        <div class="number">100</div> 
+<body>  
+</html>
